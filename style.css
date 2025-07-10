@@ -1,0 +1,281 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a2a4a;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Gradient động làm nền sáng hơn */
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #1a2a4a, #2e4a72, #40628a);
+    background-size: 200% 200%;
+    animation: gradientShift 20s ease infinite;
+    z-index: -3;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Vệt sáng di chuyển */
+.light-streak {
+    position: fixed;
+    top: 0;
+    left: -100px;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(to right, rgba(0, 221, 235, 0), rgba(0, 221, 235, 0.8), rgba(0, 221, 235, 0));
+    animation: streakMove 5s linear infinite;
+    z-index: -2;
+}
+
+@keyframes streakMove {
+    0% { left: -100px; }
+    100% { left: 100vw; }
+}
+
+#particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.music-player {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    overflow: hidden; /* Để viền không tràn ra ngoài */
+}
+
+/* Vệt sáng chạy vòng theo border của music-player */
+.music-player::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, transparent 30%, rgba(0, 221, 235, 0.8) 50%, transparent 70%);
+    background-size: 200% 200%;
+    animation: streakBorder 4s linear infinite;
+    z-index: 0;
+    border-radius: 20px;
+    pointer-events: none; /* Không cản trở tương tác */
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); /* Giới hạn gradient chỉ ở viền */
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); /* Hỗ trợ các trình duyệt */
+    -webkit-mask-composite: xor;
+    mask-composite: xor;
+}
+
+/* Vệt sáng viền bên ngoài music-player */
+.music-player::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border: 2px solid rgba(0, 221, 235, 0.5);
+    border-radius: 20px;
+    animation: streakBorder 6s linear infinite;
+    z-index: -1;
+    box-shadow: 0 0 15px rgba(0, 221, 235, 0.3);
+}
+
+@keyframes streakBorder {
+    0% { border-color: rgba(0, 221, 235, 0.2); }
+    50% { border-color: rgba(0, 221, 235, 0.8); }
+    100% { border-color: rgba(0, 221, 235, 0.2); }
+}
+
+.music-player.playing::before {
+    animation: streakBorderPlaying 3s linear infinite; /* Tăng tốc khi phát */
+}
+
+@keyframes streakBorderPlaying {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+/* Loại bỏ glow để tránh nhầm lẫn với vệt sáng */
+.music-player.playing::before {
+    background: linear-gradient(45deg, transparent 30%, rgba(0, 221, 235, 0.8) 50%, transparent 70%); /* Giữ gradient */
+}
+
+.album-art {
+    width: 180px;
+    height: 180px;
+    margin: 20px auto;
+    border-radius: 50%;
+    background: url('https://cdn.jsdelivr.net/gh/tongtrankien1605/test-link-tai-nguyen@main/image/avatar1.jpg') no-repeat center/cover;
+    border: 5px solid #00ddeb;
+    box-shadow: 0 0 25px rgba(0, 221, 235, 0.7), inset 0 0 15px rgba(0, 221, 235, 0.3);
+    animation: rotate 20s linear infinite;
+    animation-play-state: paused;
+}
+
+.album-art.playing {
+    animation-play-state: running;
+    box-shadow: 0 0 30px rgba(0, 221, 235, 1), inset 0 0 20px rgba(0, 221, 235, 0.5);
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.song-card {
+    background: rgba(255, 255, 255, 0.25); /* Màu card sáng hơn */
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.song-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 221, 235, 0.4);
+}
+
+.song-card h2 {
+    font-size: 1.5em;
+    margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.song-card p {
+    font-size: 1em;
+    color: #d1d1d1;
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    flex-grow: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.progress {
+    width: 0;
+    height: 100%;
+    background: #00ddeb;
+    border-radius: 3px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 10px rgba(0, 221, 235, 0.5);
+}
+
+.time {
+    font-size: 0.85em;
+    color: #d1d1d1;
+    min-width: 40px;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+.controls button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2em;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.controls button:hover {
+    transform: scale(1.15);
+    color: #00ddeb;
+}
+
+.playlist {
+    max-height: 150px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #00ddeb rgba(255, 255, 255, 0.1);
+}
+
+.playlist-item {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    margin-bottom: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.playlist-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(5px);
+}
+
+.playlist-item.active {
+    background: #00ddeb;
+    color: #0a1a3a;
+}
+
+.error {
+    color: #ff5555;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9em;
+    text-shadow: 0 0 3px rgba(255, 85, 85, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .music-player {
+        padding: 15px;
+        margin: 10px;
+    }
+    .album-art {
+        width: 150px;
+        height: 150px;
+    }
+    .controls button {
+        font-size: 1.8em;
+    }
+}

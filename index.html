@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music with Tống Trần Kiên</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!-- Thêm CDN cho Particles.js -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="songs.js" defer></script>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="light-streak"></div>
+    <div id="particles-js"></div>
+    <div class="music-player">
+        <div class="album-art" id="album-art"></div>
+        <div class="song-card">
+            <h2 id="song-title">Tên bài hát</h2>
+            <p id="artist">Nghệ sĩ</p>
+        </div>
+        <div class="progress-container">
+            <span class="time" id="current-time">0:00</span>
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <span class="time" id="duration">0:00</span>
+        </div>
+        <div class="controls">
+            <button id="prev">⏮</button>
+            <button id="play-pause">▶️</button>
+            <button id="next">⏭</button>
+        </div>
+        <div class="playlist" id="playlist"></div>
+        <p class="error" id="error" style="display: none;"></p>
+    </div>
+
+    <script>
+        // Chờ DOM và songs.js tải xong
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof songs === 'undefined') {
+                console.error('Lỗi: Biến songs không được định nghĩa. Kiểm tra nội dung songs.js.');
+                document.getElementById('error').textContent = 'Lỗi: Không tải được danh sách bài hát. Vui lòng kiểm tra tệp songs.js.';
+                document.getElementById('error').style.display = 'block';
+                return;
+            }
+            console.log('Danh sách bài hát đã tải:', songs);
+
+            // Hàm xáo trộn mảng (Fisher-Yates shuffle)
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Xáo trộn danh sách bài hát
+            const shuffledSongs = shuffleArray([...songs]); // Sao chép và xáo trộn
+            console.log('Danh sách bài hát sau khi xáo:', shuffledSongs);
+
+            // Cấu hình Particles.js
+            particlesJS("particles-js", {
+                particles: {
+                    number: { value: 80, density: { enable: true, value_area: 800 } },
+                    color: { value: "#ffffff" },
+                    shape: { type: "circle" },
+                    opacity: { value: 0.5, random: true },
+                    size: { value: 3, random: true },
+                    line_linked: { enable: true, distance: 150, color: "#ffffff", opacity: 0.4, width: 1 },
+                    move: { enable: true, speed: 3, direction: "none", random: false, straight: false }
+                },
+                interactivity: {
+                    detect_on: "canvas",
+                    events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" } },
+                    modes: { repulse: { distance: 100 }, push: { particles_nb: 4 } }
+                },
+                retina_detect: true
+            });
+
+            // Định dạng thời gian
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            const audio = new Audio();
+            let currentSongIndex = Math.floor(Math.random() * shuffledSongs.length);
+            let isPlaying = false;
+
+            const playPauseBtn = document.getElementById('play-pause');
+            const prevBtn = document.getElementById('prev');
+            const nextBtn = document.getElementById('next');
+            const progressBar = document.getElementById('progress-bar');
+            const progress = document.getElementById('progress');
+            const songTitle = document.getElementById('song-title');
+            const artist = document.getElementById('artist');
+            const playlist = document.getElementById('playlist');
+            const albumArt = document.getElementById('album-art');
+            const errorDisplay = document.getElementById('error');
+            const currentTimeDisplay = document.getElementById('current-time');
+            const durationDisplay = document.getElementById('duration');
+            const musicPlayer = document.querySelector('.music-player');
+
+            // Hiển thị lỗi
+            function showError(message) {
+                errorDisplay.textContent = message;
+                errorDisplay.style.display = 'block';
+                console.error(message);
+            }
+
+            // Xóa lỗi
+            function clearError() {
+                errorDisplay.textContent = '';
+                errorDisplay.style.display = 'none';
+            }
+
+            // Tạo danh sách phát từ mảng đã xáo trộn
+            function loadPlaylist() {
+                playlist.innerHTML = '';
+                shuffledSongs.forEach((song, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('playlist-item');
+                    item.innerHTML = `${song.title} - ${song.artist}`;
+                    item.addEventListener('click', () => {
+                        currentSongIndex = index;
+                        loadSong();
+                        playSong();
+                    });
+                    playlist.appendChild(item);
+                });
+                updatePlaylist();
+            }
+
+            // Cập nhật giao diện danh sách phát và cuộn đến bài hát hiện tại
+            function updatePlaylist() {
+                const items = playlist.querySelectorAll('.playlist-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('active', index === currentSongIndex);
+                });
+                scrollToCurrentSong();
+            }
+
+            // Cuộn danh sách phát đến bài hát đang phát
+            function scrollToCurrentSong() {
+                const activeItem = playlist.querySelector('.playlist-item.active');
+                if (activeItem) {
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // Tải bài hát từ mảng đã xáo trộn
+            function loadSong() {
+                if (typeof shuffledSongs === 'undefined') {
+                    showError('Lỗi: Danh sách bài hát không tồn tại.');
+                    return;
+                }
+                const song = shuffledSongs[currentSongIndex];
+                songTitle.textContent = song.title;
+                artist.textContent = song.artist;
+                audio.src = song.src;
+                audio.load();
+                clearError();
+                updatePlaylist();
+                albumArt.classList.toggle('playing', isPlaying);
+                currentTimeDisplay.textContent = '0:00';
+                durationDisplay.textContent = '0:00';
+                audio.addEventListener('loadedmetadata', () => {
+                    durationDisplay.textContent = formatTime(audio.duration);
+                    console.log(`Loaded: ${song.title}, Duration: ${audio.duration}s`);
+                }, { once: true });
+                audio.addEventListener('error', () => {
+                    showError('Lỗi tải bài hát. Vui lòng kiểm tra link MP3 hoặc kết nối.');
+                }, { once: true });
+            }
+
+            // Phát nhạc
+            function playSong() {
+                console.log('Attempting to play:', shuffledSongs[currentSongIndex].title);
+                audio.play().then(() => {
+                    isPlaying = true;
+                    playPauseBtn.textContent = '⏸';
+                    albumArt.classList.add('playing');
+                    musicPlayer.classList.add('playing');
+                    clearError();
+                    console.log(`Playing: ${shuffledSongs[currentSongIndex].title}`);
+                }).catch((error) => {
+                    isPlaying = false;
+                    playPauseBtn.textContent = '▶️';
+                    albumArt.classList.remove('playing');
+                    musicPlayer.classList.remove('playing');
+                    showError('Không thể phát nhạc. Vui lòng kiểm tra kết nối hoặc thử bài khác.');
+                    console.error('Lỗi phát nhạc:', error);
+                });
+            }
+
+            // Tạm dừng nhạc
+            function pauseSong() {
+                isPlaying = false;
+                playPauseBtn.textContent = '▶️';
+                audio.pause();
+                albumArt.classList.remove('playing');
+                musicPlayer.classList.remove('playing');
+                console.log(`Paused: ${shuffledSongs[currentSongIndex].title}`);
+            }
+
+            // Chuyển bài
+            function nextSong() {
+                currentSongIndex = (currentSongIndex + 1) % shuffledSongs.length;
+                loadSong();
+                playSong();
+                console.log('Next song:', shuffledSongs[currentSongIndex].title);
+            }
+
+            function prevSong() {
+                currentSongIndex = (currentSongIndex - 1 + shuffledSongs.length) % shuffledSongs.length;
+                loadSong();
+                playSong();
+                console.log('Previous song:', shuffledSongs[currentSongIndex].title);
+            }
+
+            // Cập nhật thanh tiến trình và thời gian
+            audio.addEventListener('timeupdate', () => {
+                const { currentTime, duration } = audio;
+                if (duration) {
+                    const progressPercent = (currentTime / duration) * 100;
+                    progress.style.width = `${progressPercent}%`;
+                    currentTimeDisplay.textContent = formatTime(currentTime);
+                    durationDisplay.textContent = formatTime(duration);
+                }
+            });
+
+            // Xử lý nhấp vào thanh tiến trình
+            progressBar.addEventListener('click', (e) => {
+                const width = progressBar.clientWidth;
+                const clickX = e.offsetX;
+                const duration = audio.duration;
+                if (duration) {
+                    audio.currentTime = (clickX / width) * duration;
+                    console.log(`Seek to: ${audio.currentTime}s`);
+                }
+            });
+
+            // Tự động chuyển bài khi kết thúc
+            audio.addEventListener('ended', () => {
+                console.log(`Ended: ${shuffledSongs[currentSongIndex].title}`);
+                nextSong();
+            });
+
+            // Xử lý lỗi chung
+            audio.addEventListener('error', (e) => {
+                showError('Lỗi tải hoặc phát bài hát. Vui lòng kiểm tra link MP3.');
+                console.error('Audio error:', e);
+            });
+
+            // Xử lý nút điều khiển
+            playPauseBtn.addEventListener('click', () => {
+                console.log('Play/Pause button clicked');
+                if (isPlaying) {
+                    pauseSong();
+                } else {
+                    playSong();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                console.log('Previous button clicked');
+                prevSong();
+            });
+
+            nextBtn.addEventListener('click', () => {
+                console.log('Next button clicked');
+                nextSong();
+            });
+
+            // Khởi tạo
+            loadPlaylist();
+            loadSong();
+        });
+    </script>
+</body>
+</html>
